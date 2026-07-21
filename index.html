@@ -1,46 +1,491 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Debrief</title>
-  <meta name="description" content="Debrief — a reflection tool, not a recording tool.">
-  <style>
-    :root {
-      color-scheme: light;
-      --ink: #1a1d21;
-      --muted: #6b7280;
-      --tint: #f6f7f9;
-    }
-    * { margin: 0; box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      color: var(--ink);
-      background: var(--tint);
-      min-height: 100svh;
-      display: grid;
-      place-items: center;
-      padding: 2rem;
-    }
-    main { text-align: center; max-width: 34rem; }
-    h1 {
-      font-size: 1.5rem;
-      font-weight: 650;
-      letter-spacing: -0.01em;
-    }
-    h1 span { color: var(--muted); font-weight: 400; }
-    p {
-      margin-top: 0.75rem;
-      color: var(--muted);
-      font-size: 1.0625rem;
-      line-height: 1.5;
-    }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Debrief — the dashboard that talks back</title>
+<meta name="description" content="A local-first desktop running dashboard with a coach that lives in the AI you already pay for. Durability, ramp, and your easy corridor — computed on your machine. No subscriptions, no servers, no data entry.">
+<meta property="og:title" content="Debrief — the dashboard that talks back">
+<meta property="og:description" content="Local-first running analytics with an AI coach that writes decisions straight back into your plan. First year free for founding runners.">
+<meta property="og:url" content="https://debrief.run">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f5f5f7;
+    --card: #ffffff;
+    --ink: #16161a;
+    --muted: #6e6e73;
+    --line: #e8e8ed;
+    --hot: #ff5a2a;
+    --blue: #0b6bf2;
+    --green: #2fbf71;
+    --claude: #d97757;
+  }
+  * { margin: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 17px; line-height: 1.5; -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+  header { padding: 24px 0 8px; display: flex; justify-content: space-between; align-items: baseline; }
+  .wordmark { font-weight: 600; }
+  .wordmark span { color: var(--blue); }
+  header .quiet { font-size: 13px; color: var(--muted); }
+
+  /* ---------- the fused hero ---------- */
+  .hero { text-align: center; padding: 30px 0 8px; }
+  h1 {
+    font-family: "Bricolage Grotesque", sans-serif;
+    font-size: clamp(38px, 6.2vw, 72px); font-weight: 800;
+    letter-spacing: -0.03em; line-height: 0.98; margin: 0 auto;
+  }
+  h1 .flip { color: var(--hot); }
+  .hero > p { color: var(--muted); font-size: 17.5px; max-width: 60ch; margin: 16px auto 0; }
+  .hero b { color: var(--ink); }
+
+  .seg-label { text-align: center; font-family: "JetBrains Mono", monospace; font-size: 11px;
+               letter-spacing: .16em; color: #9a9aa1; padding-top: 16px; }
+  .seg { display: flex; justify-content: center; gap: 10px; padding-top: 10px; flex-wrap: wrap; }
+  .seg button {
+    font: inherit; font-size: 15px; font-weight: 550; cursor: pointer; text-align: left;
+    border: 1px solid #cfcfd6; background: #fff; color: var(--ink);
+    border-radius: 12px; padding: 12px 18px; max-width: 340px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.06);
+    transition: transform .12s ease, box-shadow .12s ease;
+  }
+  .seg button:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,.10); }
+  .seg button::before { content: "“"; color: var(--hot); font-weight: 800; margin-right: 2px; }
+  .seg button::after { content: "”"; color: var(--hot); font-weight: 800; margin-left: 2px; }
+  .seg button.active { background: var(--ink); color: #fff; border-color: var(--ink); }
+
+  /* the one frame: screenshot + floating Claude + write-backs */
+  .fused { position: relative; margin: 44px 0 10px; }
+  .fused .shot {
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.06), 0 28px 70px rgba(0,0,0,.11);
+    overflow: hidden;
+  }
+  .fused .shot img { display: block; width: 100%; height: auto; }
+
+  .window {
+    position: absolute; right: 2.4%; top: -34px; width: 400px; max-width: 88%;
+    border-radius: 12px; overflow: hidden; text-align: left;
+    box-shadow: 0 6px 18px rgba(0,0,0,.14), 0 30px 70px rgba(0,0,0,.28);
+  }
+  .titlebar { display: flex; align-items: center; gap: 8px; padding: 10px 14px;
+              font-size: 12.5px; font-weight: 550;
+              background: #faf5ef; color: #6b5d52; border-bottom: 1px solid #eee3d8; }
+  .lights { display: flex; gap: 6px; margin-right: 6px; }
+  .lights i { width: 11px; height: 11px; border-radius: 99px; display: block; }
+  .lights i:nth-child(1) { background: #ff5f57; } .lights i:nth-child(2) { background: #febc2e; } .lights i:nth-child(3) { background: #28c840; }
+  .cbody { background: #fdfaf6; padding: 18px 18px 16px; font-size: 13.5px; line-height: 1.5; }
+  .bubble-you { background: #f0e9e1; border-radius: 12px 12px 3px 12px; padding: 9px 13px;
+                max-width: 92%; margin-left: auto; opacity: 0; }
+  .play .bubble-you { animation: appear .01s linear .4s forwards; }
+  .bubble-you .text { display: inline-block; white-space: nowrap; overflow: hidden; vertical-align: bottom;
+                      width: 0; border-right: 2px solid #6b5d52; }
+  .play .s1 .bubble-you .text { animation: type48 1.9s steps(48) .5s forwards, caretoff .01s linear 2.5s forwards; }
+  .play .s2 .bubble-you .text { animation: type52 2s steps(52) .5s forwards, caretoff .01s linear 2.6s forwards, wrapon .01s linear 2.62s forwards; }
+  .s2 .opt { padding-top: 6px; }
+  .s2 .opt b { color: var(--claude); }
+  .s2 .pick { margin-top: 12px; }
+  .s2 .reply2 { padding-top: 12px; }
+  .play .s2 .bubble-you.pick { animation: appear .25s ease 5.6s forwards; }
+  .play .s2 .reply2 { animation: appear .35s ease 6.4s forwards; }
+  .play .s2 .tooluse { animation: appear .3s ease 7.2s forwards; }
+  .claude-reply { display: flex; gap: 9px; padding-top: 14px; opacity: 0; }
+  .play .claude-reply { animation: appear .4s ease 3s forwards; }
+  .claude-reply .star { color: var(--claude); font-size: 17px; line-height: 1.3; }
+  .claude-reply p { color: #3d3a36; }
+  .claude-reply .hotline { color: var(--claude); font-weight: 600; }
+  .s1 .b2 { opacity: 0; padding-top: 8px; }
+  .play .s1 .b2 { animation: appear .4s ease 4.2s forwards; }
+  .tooluse { margin-top: 12px; border: 1px solid #eee3d8; border-radius: 8px; background: #fff;
+             font-family: "JetBrains Mono", monospace; font-size: 11px; color: #8a7d70;
+             padding: 7px 11px; opacity: 0; }
+  .play .tooluse { animation: appear .3s ease 5s forwards; }
+  .tooluse .ok { color: var(--green); }
+  .tooluse b { color: #3d3a36; font-weight: 500; }
+
+  /* write-backs landing ON the screenshot */
+  .anno {
+    position: absolute; left: 24%; top: 33%; max-width: 250px; text-align: left;
+    background: var(--ink); color: #fff; font-size: 12.5px; line-height: 1.45;
+    border-radius: 8px; padding: 10px 13px; opacity: 0; transform: translateY(8px);
+    box-shadow: 0 10px 30px rgba(0,0,0,.3);
+  }
+  .anno .ok { color: var(--green); font-weight: 700; }
+  .anno .pin { position: absolute; left: 26px; bottom: -16px; width: 2px; height: 16px; background: var(--ink); }
+  .anno .pindot { position: absolute; left: 22px; bottom: -24px; width: 10px; height: 10px;
+                  border-radius: 99px; background: var(--hot); border: 2px solid #fff; }
+  .play .s1-anno.anno { animation: dropin .5s cubic-bezier(.2,.9,.3,1.2) 5.6s forwards; }
+  .toastup {
+    position: absolute; left: 3%; top: 7%; text-align: left;
+    background: var(--ink); color: #fff; font-size: 12.5px; border-radius: 8px;
+    padding: 9px 14px; display: flex; gap: 8px; align-items: center;
+    opacity: 0; transform: translateY(8px); box-shadow: 0 10px 30px rgba(0,0,0,.3);
+  }
+  .toastup .ok { color: var(--green); font-weight: 700; }
+  .play .s2-toast.toastup { animation: dropin .45s ease 7.8s forwards; }
+  .fused[data-scene="1"] .s2 { display: none; }
+  .fused[data-scene="2"] .s1 { display: none; }
+  .fused[data-scene="1"] .s2-toast { display: none; }
+  .fused[data-scene="2"] .s1-anno { display: none; }
+
+  .fused-cap { text-align: center; font-size: 13.5px; color: var(--muted); padding: 10px 0 60px; }
+  .fused-cap b { color: var(--ink); }
+  .fused-cap a { color: var(--hot); text-decoration: none; font-weight: 600; }
+
+  @keyframes type48 { to { width: 48ch; } }
+  @keyframes type46 { to { width: 46ch; } }
+  @keyframes type52 { to { width: 53.5ch; } }
+  @keyframes wrapon { to { white-space: normal; width: auto; } }
+  @keyframes caretoff { to { border-right-color: transparent; } }
+  @keyframes appear { to { opacity: 1; } }
+  @keyframes dropin { to { opacity: 1; transform: translateY(0); } }
+  @media (prefers-reduced-motion: reduce) {
+    .bubble-you, .claude-reply, .tooluse, .s1 .b2, .anno, .toastup { animation: none !important; opacity: 1 !important; transform: none !important; }
+    .bubble-you .text { animation: none !important; width: auto !important; border-right-color: transparent !important; }
+  }
+
+  /* ---------- supporting acts ---------- */
+  .story { text-align: center; padding: 8px 0 40px; }
+  .kicker { display: inline-block; font-family: "JetBrains Mono", monospace; font-size: 12px;
+            letter-spacing: .14em; color: var(--blue); border: 1px solid currentColor;
+            border-radius: 99px; padding: 5px 14px; margin-bottom: 22px; }
+  .story h2 { font-family: "Bricolage Grotesque", sans-serif; font-weight: 800;
+              font-size: clamp(28px, 4.6vw, 48px); letter-spacing: -0.03em; line-height: 1.04; }
+  .story h2 .dim { color: #9a9aa1; }
+  .story > p { color: var(--muted); max-width: 58ch; margin: 16px auto 0; }
+  .story b { color: var(--ink); }
+  .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 36px 0 64px; text-align: left; }
+  .metric { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 22px 24px 20px; }
+  .metric .eyebrow { font-family: "JetBrains Mono", monospace; font-size: 10.5px; letter-spacing: .14em;
+                     color: var(--muted); padding-bottom: 8px; }
+  .metric .n { font-family: "Bricolage Grotesque", sans-serif; font-weight: 800; font-size: 30px; letter-spacing: -0.02em; }
+  .metric .n small { font-family: -apple-system, sans-serif; font-size: 13px; font-weight: 500; color: var(--muted); margin-left: 4px; letter-spacing: 0; }
+  .metric .viz { display: flex; align-items: center; gap: 3px; min-height: 22px; flex-wrap: wrap; margin: 10px 0 12px; }
+  .metric .viz.rise { align-items: flex-end; }
+  .metric p { font-size: 13.5px; color: var(--muted); line-height: 1.5; }
+  /* durability: 17 week ticks */
+  .viz .tick { width: 5px; height: 14px; border-radius: 1.5px; background: linear-gradient(180deg, #6f9fd8, #dce9f8); }
+  /* ramp: the sustainable band with this week's dot */
+  .viz .band { position: relative; flex: 1; height: 10px; border-radius: 99px; background: #e3edf8; max-width: 190px; }
+  .viz .band i { position: absolute; left: 62%; top: 50%; transform: translate(-50%,-50%); width: 12px; height: 12px;
+                 border-radius: 99px; background: var(--blue); border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,.25); }
+  .viz .band-lab { font-family: "JetBrains Mono", monospace; font-size: 10px; color: var(--muted); margin-left: 8px; }
+  /* corridor: real run chips, one inside, one over */
+  .viz .chip-in { font-family: "JetBrains Mono", monospace; font-size: 11.5px; font-weight: 700;
+                  background: #e8f0fe; color: #1a56c4; border-radius: 6px; padding: 3px 8px; }
+  .viz .chip-out { font-family: "JetBrains Mono", monospace; font-size: 11.5px; font-weight: 700;
+                   background: #fdeee7; color: #d14b1f; border-radius: 6px; padding: 3px 8px; }
+  .viz .chip-lab { font-family: "JetBrains Mono", monospace; font-size: 10px; color: var(--muted); }
+  .viz .pair { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; margin-right: 8px; }
+
+  .clip { background: var(--card); border: 1px solid var(--line); border-radius: 20px;
+          padding: 48px 48px 42px; margin-bottom: 52px; text-align: center; }
+  .clip h2 { font-family: "Bricolage Grotesque", sans-serif; font-weight: 800;
+             font-size: clamp(28px, 4.4vw, 46px); letter-spacing: -0.03em; padding-bottom: 14px; }
+  .clip h2 .flip { color: var(--hot); }
+  .clip .sub { color: var(--muted); max-width: 58ch; margin: 0 auto; padding-bottom: 34px; }
+  .clip .sub b { color: var(--ink); }
+  .flow { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; padding-bottom: 14px; }
+  .flow .lab { flex-basis: 100%; font-family: "JetBrains Mono", monospace; font-size: 11px;
+               letter-spacing: .16em; color: #9a9aa1; padding-bottom: 10px; }
+  .step { font-size: 14px; border-radius: 10px; padding: 9px 13px; }
+  .arr { color: #b6b6bd; font-size: 15px; }
+  .flow.oldway { padding-bottom: 26px; }
+  .flow.oldway .step { background: var(--bg); border: 1px solid var(--line); color: var(--muted);
+                       text-decoration: line-through; text-decoration-color: rgba(255,90,42,.7); }
+  .flow.newway .lab { color: var(--hot); }
+  .flow.newway .step { background: var(--ink); color: #fff; font-weight: 550; font-size: 15px; padding: 11px 18px; }
+  .flow.newway .arr { color: var(--hot); font-weight: 700; font-size: 18px; }
+  .flow.newway .step.done { background: #eefaf3; color: #177245; border: 1px solid #cdeeda; }
+  .clip .tail { padding-top: 22px; font-size: 17px; color: var(--muted); }
+  .clip .tail b { color: var(--ink); font-weight: 650; }
+
+  .punches { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding-bottom: 64px; }
+  .punch { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 22px 24px 20px; }
+  .punch .eyebrow { font-family: "JetBrains Mono", monospace; font-size: 10.5px; letter-spacing: .14em;
+                    color: var(--muted); padding-bottom: 8px; }
+  .punch .big { font-family: "Bricolage Grotesque", sans-serif; font-weight: 800; font-size: 30px; letter-spacing: -0.02em; line-height: 1; padding-bottom: 12px; }
+  .punch .big small { font-family: -apple-system, sans-serif; font-size: 13px; font-weight: 500; color: var(--muted); margin-left: 5px; letter-spacing: 0; }
+  .punch .big.hot { color: var(--hot); }
+  .punch .big.hot small { color: var(--muted); }
+  .punch p { font-size: 13.5px; color: var(--muted); line-height: 1.5; }
+
+  .who { text-align: center; padding-bottom: 64px; }
+  .who h2 { font-family: "Bricolage Grotesque", sans-serif; font-weight: 800;
+            font-size: clamp(28px, 4.4vw, 46px); letter-spacing: -0.03em; padding-bottom: 30px; }
+  .who h2 .own { color: var(--blue); }
+  .who-card { background: var(--card); border: 1px solid var(--line); border-radius: 20px;
+              padding: 40px 44px 34px; text-align: left;
+              display: grid; grid-template-columns: 1fr 1fr; gap: 20px 48px; }
+  .who-col h3 { font-size: 14.5px; font-weight: 650; padding-bottom: 12px; }
+  .who-col h3.yes { color: #177245; }
+  .who-col h3.no { color: var(--muted); }
+  .who-col ul { list-style: none; }
+  .who-col li { font-size: 14.5px; color: #3c3c40; padding: 7px 0 7px 26px; position: relative; }
+  .who-col li + li { border-top: 1px solid var(--bg); }
+  .who-col li::before { position: absolute; left: 2px; font-weight: 700; }
+  .who-col:first-child li::before { content: "✓"; color: var(--green); }
+  .who-col:last-child li::before { content: "—"; color: #b6b6bd; }
+  .who .math { grid-column: 1 / -1; background: var(--bg); border-radius: 12px;
+               padding: 16px 20px; font-size: 14px; color: var(--muted); line-height: 1.55; margin-top: 10px; }
+  .who .math b { color: var(--ink); }
+  .steal-in { grid-column: 1 / -1; color: var(--muted); font-size: 13.5px; font-style: italic; padding-top: 4px; line-height: 1.5; text-align: center; }
+  .steal-in b { color: var(--ink); font-style: normal; }
+  .steal-in .sig { font-style: normal; }
+  .cta { text-align: center; padding-bottom: 80px; }
+  .cta h2 { font-family: "Bricolage Grotesque", sans-serif; font-weight: 800; letter-spacing: -0.02em;
+            font-size: clamp(28px, 4vw, 40px); padding-bottom: 10px; }
+  .cta .founding { color: var(--muted); max-width: 52ch; margin: 0 auto; padding-bottom: 22px; font-size: 15.5px; }
+  .cta .founding b { color: var(--hot); }
+  form { display: inline-flex; gap: 10px; width: 100%; max-width: 460px; }
+  input[type=email] { flex: 1; font: inherit; font-size: 15px; padding: 13px 16px; border: 1px solid #d2d2d7; border-radius: 10px; background: #fff; }
+  input[type=email]:focus { outline: 2px solid var(--hot); outline-offset: 1px; }
+  button.cta-btn { font: inherit; font-size: 15px; font-weight: 600; color: #fff; background: var(--ink); border: 0; border-radius: 10px; padding: 13px 24px; cursor: pointer; }
+  button.cta-btn:hover { background: var(--hot); }
+  .cta .quiet { font-size: 13px; color: var(--muted); padding-top: 18px; }
+  .bib {
+    display: inline-flex; flex-direction: column; align-items: center; gap: 2px;
+    margin-top: 26px; padding: 14px 30px 12px;
+    background: #fff; border: 1.5px dashed #c9c9cf; border-radius: 10px;
+    transform: rotate(-1.2deg); opacity: 0;
+  }
+  .bib-eyebrow { font-family: "JetBrains Mono", monospace; font-size: 10px; letter-spacing: .22em; color: var(--muted); }
+  .bib-num { font-family: "Bricolage Grotesque", sans-serif; font-weight: 800; font-size: 40px; letter-spacing: -0.02em; color: var(--hot); line-height: 1.05; }
+  .bib-foot { font-family: "JetBrains Mono", monospace; font-size: 10px; color: var(--muted); }
+  .bib.stamp { animation: stampin .45s cubic-bezier(.2,1.4,.4,1) forwards; }
+  @keyframes stampin { from { opacity: 0; transform: rotate(-8deg) scale(1.25); }
+                       to { opacity: 1; transform: rotate(-1.2deg) scale(1); } }
+  @media (prefers-reduced-motion: reduce) { .bib { opacity: 1; } .bib.stamp { animation: none; } }
+  footer { text-align: center; color: var(--muted); font-size: 13px; padding-bottom: 44px; }
+
+  @media (max-width: 880px) {
+    .window { position: static; width: 100%; max-width: 100%; margin-top: 14px; }
+    .flow { flex-direction: column; gap: 6px; }
+    .flow .arr { transform: rotate(90deg); }
+    .bubble-you .text { white-space: normal; width: auto; border-right: 0; }
+    .play .s1 .bubble-you .text, .play .s2 .bubble-you .text { animation: appear .4s ease .5s forwards; opacity: 0; display: inline; }
+  }
+  @media (max-width: 780px) {
+    .metrics, .punches { grid-template-columns: 1fr; }
+    .metric { display: grid; grid-template-columns: 150px 1fr; column-gap: 20px;
+              grid-template-areas: "eb eb" "num text" "viz text"; align-items: start; }
+    .metric .eyebrow { grid-area: eb; }
+    .metric .n { grid-area: num; font-size: 26px; }
+    .metric .viz { grid-area: viz; margin: 8px 0 0; }
+    .metric p { grid-area: text; align-self: center; }
+    .who-card { grid-template-columns: 1fr; padding: 26px 22px; }
+    .punch { display: grid; grid-template-columns: 150px 1fr; column-gap: 20px; align-items: center; padding: 22px 24px; }
+    .punch .big { font-size: 34px; padding-bottom: 0; }
+    .clip { padding: 34px 22px; }
+  }
+</style>
 </head>
 <body>
-  <main>
-    <h1>debrief<span>.run</span></h1>
-    <p>A reflection tool, not a recording tool.<br>Soon.</p>
-  </main>
+  <div class="wrap">
+    <header>
+      <div class="wordmark">debrief<span>.run</span></div>
+      <div class="quiet">macOS · Windows — first year free</div>
+    </header>
+
+    <section class="hero">
+      <h1>The dashboard<br>that <span class="flip">talks back.</span></h1>
+      <p>Durability, ramp, and your easy corridor — computed from your own watch, on your own machine. With a coach that lives in <b>the AI you already pay for</b> and writes every decision <b>straight back into the screen.</b></p>
+      <div class="seg-label">TRY ASKING</div>
+      <div class="seg" role="tablist" aria-label="Choose a conversation">
+        <button class="active" data-scene="1">Why is that dot floating above the bar?</button>
+        <button data-scene="2">I'm cooked — what are my options?</button>
+      </div>
+    </section>
+
+    <div class="fused" data-scene="1">
+      <div class="shot"><img src="assets/dashboard-12mo.png" alt="The Debrief dashboard: weekly tiles and twelve months of miles and load"></div>
+
+      <div class="anno s1-anno">Normal effort, aggressive ramp — 1.29× load, 7 runs. Start of the block that ended in the Feb injury. <span class="ok">✓ pinned</span><span class="pin"></span><span class="pindot"></span></div>
+      <div class="toastup s2-toast"><span class="ok">✓</span> Wednesday → easy 6 · 6×800 → Friday · plan updated</div>
+
+      <div class="window">
+        <div class="titlebar"><span class="lights"><i></i><i></i><i></i></span> Claude — connected to Debrief</div>
+        <div class="cbody">
+          <div class="s1">
+            <div class="bubble-you"><span class="text">Sep 22 — why is that dot floating above the bar?</span></div>
+            <div class="claude-reply">
+              <div class="star">✳</div>
+              <div>
+                <p>Mile-for-mile you were <em>under</em> your normal effort then — you weren't running hard, you were running <em>a lot</em>: 7 runs, 1.29× your recent load. <span class="hotline">Intensity was innocent; volume was the aggressor.</span></p>
+                <p class="b2">And it starts the block that ended in your February injury. <span class="hotline">The tendons got outvoted.</span></p>
+              </div>
+            </div>
+            <div class="tooluse">→ debrief · <b>annotate_week</b> · "normal effort, aggressive ramp" <span class="ok">✓ pinned</span></div>
+          </div>
+          <div class="s2">
+            <div class="bubble-you"><span class="text">Cooked from Sunday's long run — what are my options?</span></div>
+            <div class="claude-reply">
+              <div class="star">✳</div>
+              <div>
+                <p>Real fatigue — 17 weeks without a down week, and yesterday's HR drift agrees. Three ways to play Wednesday:</p>
+                <p class="opt"><b>A</b> — keep the 6×800, cut to 4 reps. Stimulus stays, dose shrinks.</p>
+                <p class="opt"><b>B</b> — easy 6 today, session moves to Friday. <span class="hotline">My pick.</span></p>
+                <p class="opt"><b>C</b> — full rest, strides tomorrow to stay loose.</p>
+              </div>
+            </div>
+            <div class="bubble-you pick"><span>B.</span></div>
+            <div class="claude-reply reply2">
+              <div class="star">✳</div>
+              <p><span class="hotline">Done — Wednesday easy 6, the 6×800 lands Friday.</span> Week holds 25 mi.</p>
+            </div>
+            <div class="tooluse">→ debrief · <b>update_plan</b> · wed: easy 6 · fri: 6×800 <span class="ok">✓ done in 0.4s</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="fused-cap">Not a mockup — <b>my actual training, synced this morning.</b> Two apps, one conversation: the coach lives in your AI, the truth lives in Debrief. <a href="#" id="replay">↻ replay</a></p>
+
+    <section class="story">
+      <div class="kicker">WHY THE SCREEN EXISTS</div>
+      <h2>The graphs were paywalled. <span class="dim">So I built them.</span></h2>
+      <p>My watch had the data. The apps had the charts — behind a monthly fee, and the ones that mattered didn't exist at any price. Debrief computes them locally, and <b>nothing you see costs a subscription.</b></p>
+      <div class="metrics">
+        <div class="metric">
+          <div class="eyebrow">DURABILITY</div>
+          <div class="n">17<small>weeks</small></div>
+          <div class="viz rise"><span class="tick" style="height:7px"></span><span class="tick" style="height:8px"></span><span class="tick" style="height:9px"></span><span class="tick" style="height:9px"></span><span class="tick" style="height:10px"></span><span class="tick" style="height:11px"></span><span class="tick" style="height:12px"></span><span class="tick" style="height:13px"></span><span class="tick" style="height:13px"></span><span class="tick" style="height:14px"></span><span class="tick" style="height:15px"></span><span class="tick" style="height:16px"></span><span class="tick" style="height:17px"></span><span class="tick" style="height:18px"></span><span class="tick" style="height:18px"></span><span class="tick" style="height:19px"></span><span class="tick" style="height:20px"></span></div>
+          <p>How long you've absorbed load without a down week — the number that predicts breakdown before your legs do.</p>
+        </div>
+        <div class="metric">
+          <div class="eyebrow">RAMP</div>
+          <div class="n">1.13<small>× chronic load</small></div>
+          <div class="viz"><span class="band"><i></i></span><span class="band-lab">sustainable band</span></div>
+          <p>This week against what your body is adapted to, watched inside its band. Progress without the injury cliff.</p>
+        </div>
+        <div class="metric">
+          <div class="eyebrow">THE EASY CORRIDOR</div>
+          <div class="n">&lt; 45<small>stress/hr</small></div>
+          <div class="viz"><span class="pair"><span class="chip-in">42.3</span><span class="chip-lab">easy, truly</span></span><span class="pair"><span class="chip-out">62.1</span><span class="chip-lab">"easy," allegedly</span></span></div>
+          <p>Every run colored against your corridor — so "easy day" stops being a feeling and starts being a fact.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="clip">
+      <h2>Stop being <span class="flip">the clipboard.</span></h2>
+      <p class="sub">Be honest — you already coach yourself with AI. Screenshot the watch app, paste it into a chat, get genuinely good advice… and then <b>you</b> type it into wherever your plan lives. Great coach. <b>Terrible job for you: data entry.</b></p>
+      <div class="flow oldway">
+        <span class="lab">EVERY WEEK UNTIL NOW</span>
+        <span class="step">screenshot</span><span class="arr">→</span>
+        <span class="step">paste</span><span class="arr">→</span>
+        <span class="step">re-explain yourself, again</span><span class="arr">→</span>
+        <span class="step">good advice</span><span class="arr">→</span>
+        <span class="step">retype into your plan</span><span class="arr">→</span>
+        <span class="step">lost by Thursday</span>
+      </div>
+      <div class="flow newway">
+        <span class="lab">WITH DEBRIEF CONNECTED</span>
+        <span class="step">ask</span><span class="arr">→</span>
+        <span class="step done">✓ already in your plan</span>
+      </div>
+      <p class="tail">Nothing retyped. Nothing re-explained. Every conversation starts with your whole history already in the room. <b>You just run.</b></p>
+    </section>
+
+    <section class="punches">
+      <div class="punch">
+        <div class="eyebrow">MANUAL ENTRY</div>
+        <div class="big">0<small>fields, ever</small></div>
+        <p>Runs sync from the watch. The AI drafts the review. You just argue with it.</p>
+      </div>
+      <div class="punch">
+        <div class="eyebrow">YOUR HISTORY</div>
+        <div class="big">1<small>file, on your disk</small></div>
+        <p>SQLite. No account, no server. I don't keep your data — I don't even want it.</p>
+      </div>
+      <div class="punch">
+        <div class="eyebrow">PRICE</div>
+        <div class="big hot">$0<small>/month, forever</small></div>
+        <p>First year free. If it earns a price later, you pay it once. We're all done renting software.</p>
+      </div>
+    </section>
+
+    <section class="who">
+      <div class="kicker">WHO IT'S FOR</div>
+      <h2>For runners who'd rather <span class="own">own</span> than rent.</h2>
+      <div class="who-card">
+        <div class="who-col">
+          <h3 class="yes">This is for you if…</h3>
+          <ul>
+            <li>you want a desktop analytics dashboard you can actually read</li>
+            <li>you want your training history on your machine, not in someone's cloud</li>
+            <li>you'd rather pay once than subscribe forever</li>
+            <li>you already talk to an AI, and wish it knew your running</li>
+          </ul>
+        </div>
+        <div class="who-col">
+          <h3 class="no">Probably not, if…</h3>
+          <ul>
+            <li>you want a phone-first recorder — your watch app already does that well</li>
+            <li>you're here for feeds, kudos, and segments</li>
+            <li>you're happiest with your data living on someone else's servers</li>
+          </ul>
+        </div>
+        <div class="math">
+          <b>The quiet math:</b> subscription apps charge monthly because they <em>pay</em> monthly — servers, storage, staff. Debrief runs on the computer you already own. No overhead, nothing to pass on. That's why it can cost like a tool instead of a service.
+        </div>
+        <p class="steal-in">If this sparks an idea for your own version — <b>take it.</b> We live in the era of bespoke software. <span class="sig">— Dave</span></p>
+      </div>
+    </section>
+
+    <section class="cta">
+      <h2>Get on the list.</h2>
+      <p class="founding">Waitlist runners are <b>founding runners</b> — your first year is free, and when the one-time price arrives, you were here before it existed.</p>
+      <form aria-label="Waitlist">
+        <input type="email" placeholder="you@example.com" aria-label="Email address">
+        <button type="button" class="cta-btn">Join the waitlist</button>
+      </form>
+      <div class="bib" aria-hidden="true">
+        <span class="bib-eyebrow">FOUNDING RUNNER</span>
+        <span class="bib-num">#047</span>
+        <span class="bib-foot">claimed when you join · yours forever</span>
+      </div>
+      <p class="quiet">An occasional email. Nothing else done with your address.</p>
+    </section>
+
+    <footer>© 2026 Debrief · local-first, by design</footer>
+  </div>
+
+<script>
+  var fused = document.querySelector(".fused");
+  window.addEventListener("load", function () {
+    var target = document.querySelector(".fused .window");
+    var io = new IntersectionObserver(function (entries) {
+      if (entries[0].isIntersecting) { fused.classList.add("play"); io.disconnect(); }
+    }, { threshold: 0.6 });
+    io.observe(target);
+  });
+  function play() {
+    fused.classList.remove("play");
+    void fused.offsetWidth;
+    fused.classList.add("play");
+  }
+  document.getElementById("replay").addEventListener("click", function (e) { e.preventDefault(); play(); });
+  window.addEventListener("load", function () {
+    var bib = document.querySelector(".bib");
+    var bio = new IntersectionObserver(function (entries) {
+      if (entries[0].isIntersecting) { bib.classList.add("stamp"); bio.disconnect(); }
+    }, { threshold: 0.8 });
+    bio.observe(bib);
+  });
+  document.querySelectorAll(".seg button").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      document.querySelectorAll(".seg button").forEach(function (b) { b.classList.remove("active"); });
+      btn.classList.add("active");
+      fused.dataset.scene = btn.dataset.scene;
+      play();
+    });
+  });
+</script>
 </body>
 </html>
