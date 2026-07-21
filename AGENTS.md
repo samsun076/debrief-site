@@ -13,3 +13,7 @@ Cloudflare Pages, push-to-deploy. Sketch before build; Dave picks by eye. Branch
 Dave merges. One fact, one appearance; tint over chrome; no decoration that says nothing.
 This repo never references the product repo except curated, approved exports. This repo is
 **public** — nothing private, no credentials, no minors-adjacent content.
+
+**Working style:** sketches are throwaway HTML in `sketches/` (gitignored) — 2–3 variants, picked
+by eye. Taste-check candidates with Dave before spending research or agents on them. Visual
+quality is non-negotiable: match the product's light, chart-forward, hero-tile idiom.
