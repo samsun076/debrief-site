@@ -134,9 +134,12 @@
   .fused[data-scene="1"] .s2-toast { display: none; }
   .fused[data-scene="2"] .s1-anno { display: none; }
 
-  .fused-cap { text-align: center; font-size: 13.5px; color: var(--muted); padding: 10px 0 60px; }
+  .fused-cap { text-align: center; font-size: 13.5px; color: var(--muted); padding: 10px 0 44px; }
   .fused-cap b { color: var(--ink); }
   .fused-cap a { color: var(--hot); text-decoration: none; font-weight: 600; }
+  .ai-chips { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-top: -34px; padding-bottom: 8px; }
+  .ai-chips .chip { font-size: 13px; background: #fff; border: 1px solid var(--line); border-radius: 99px; padding: 5px 14px; }
+  .ai-note { text-align: center; font-size: 12.5px; color: var(--muted); padding-bottom: 52px; }
 
   @keyframes type48 { to { width: 48ch; } }
   @keyframes type46 { to { width: 46ch; } }
@@ -345,6 +348,10 @@
       </div>
     </div>
     <p class="fused-cap">Not a mockup — <b>my actual training, synced this morning.</b> Two apps, one conversation: the coach lives in your AI, the truth lives in Debrief. <a href="#" id="replay">↻ replay</a></p>
+    <div class="ai-chips">
+      <span class="chip">claude.ai</span><span class="chip">ChatGPT</span><span class="chip">Codex</span><span class="chip">Claude Code</span>
+    </div>
+    <p class="ai-note">No API keys. No AI bill from us. If you can open a chat, you're set up.</p>
 
     <section class="story">
       <div class="kicker">WHY THE SCREEN EXISTS</div>
