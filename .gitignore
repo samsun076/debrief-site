@@ -1,2 +1,4 @@
 sketches/
 .DS_Store
+.wrangler/
+.mcp.json
