@@ -12,7 +12,7 @@
 | **Cloudflare** (program) | `Samsun076.program@gmail.com` | `a19e4a45a976f928d5e60345454a0d56f` | `debrief.run` zone, `seedmark.run` zone, Pages projects | Dedicated account — separate from personal `automagic.ly` CF account |
 | **Dynadot** | `samsun076` / `davemarcinowski@gmail.com` (secondary: `dave@automagic.ly`) | `d_m_cheshire_us` | `debrief.run`, `seedmark.run` domain registrations | Registered 2026-07-21 |
 | **Doppler** | `dave@automagic.ly` / workspace: `automagicly` | `4abdc8ec573543535d36` | Agent-accessible secrets (Track A, O5) | Developer Plan (free), 5-project cap |
-| **GitHub** | `samsun076` | — | `debrief-site` (public), `runtrack` (private, rename pending #42) | Push-to-deploy source for CF Pages |
+| **GitHub** | `samsun076` | — | `debrief-site` (public), `debrief` (private) | Push-to-deploy source for CF Pages |
 | **Fly.io** | _TBD_ | — | `seedmark` org (future) | Existing account, new org per D16 |
 
 ---
