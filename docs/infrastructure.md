@@ -58,20 +58,34 @@
 **Architecture:** Doppler free tier → per-project secrets → `doppler run --` runtime injection.
 Machine/service tokens stored in **macOS Keychain** (per-machine, per-project scoped).
 
+### Where secrets live
+
+Secrets are stored in **two places** with distinct purposes:
+
+| Store | Purpose | Scope | Used by |
+|-------|---------|-------|---------|
+| **Doppler** (`program-cf/prd`) | Local/agent CLI use | `doppler run --` injects at runtime | Developer machines, Claude Code sessions |
+| **GitHub Secrets** (`samsun076/debrief-site`) | CI auto-deploy | `${{ secrets.* }}` in Actions workflows | GitHub Actions only |
+
+The same `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` values exist in both stores. This is intentional — GitHub Actions can't pull from Doppler without a Doppler token (which would just move the problem), and Doppler can't be used in CI without adding a dependency. Two values, not a maintenance burden; rotate in both places when rotating.
+
 ### Doppler project layout
 
 | Doppler Project | Secrets | Used by |
 |-----------------|---------|---------|
-| `program-cf` | `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `DYNADOT_API_KEY` | Both domains — shared Cloudflare account |
+| `program-cf` | `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `DYNADOT_API_KEY`, `DYNADOT_SECRET_KEY` | Both domains — shared Cloudflare account |
+
+### GitHub repo secrets
+
+| Repo | Secrets | Used by |
+|------|---------|---------|
+| `samsun076/debrief-site` | `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` | `.github/workflows/deploy.yml` |
 
 ### Token scoping (D16 posture)
 
-The Cloudflare API token is scoped to:
-- `Zone:Read`
-- `Zone DNS:Edit`
-- `Zone Settings:Edit`
-- `Cache Purge:Purge`
-- `Cloudflare Pages:Edit`
+**Cloudflare deploy token** (`debrief-site-deploy`, ID: `43cc74aebf48630618a173decfcd059f`):
+- Permission: `Cloudflare Pages Write` (account-scoped)
+- Used by both Doppler and GitHub Secrets
 
 Zone scope: all zones in the program account (covers both `debrief.run` and `seedmark.run`).
 
@@ -102,17 +116,34 @@ doppler run -- npx wrangler dns ...
 Developer pushes to main
         │
         ▼
-GitHub webhook → Cloudflare Pages
+GitHub Actions (.github/workflows/deploy.yml)
         │
         ▼
-Pages serves static files from repo root
+cloudflare/wrangler-action@v3
+  ├─ apiToken:   ${{ secrets.CLOUDFLARE_API_TOKEN }}
+  └─ accountId:  ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         │
         ▼
-Live at debrief.run (+ www redirect)
+wrangler pages deploy . --project-name debrief-site
+        │
+        ▼
+Cloudflare Pages serves static files
+        │
+        ▼
+Live at debrief.run (+ www.debrief.run)
 ```
 
 **No build step.** Cloudflare Pages serves the repo root as static HTML.
 The `sketches/` directory is gitignored and never deployed.
+
+### Token rotation for CI
+
+When rotating the Cloudflare API token, update **both** stores:
+
+1. Create new token in CF dashboard (or via API) with `Pages Write` permission
+2. `doppler secrets set CLOUDFLARE_API_TOKEN=<new-token> --project program-cf --config prd`
+3. `gh secret set CLOUDFLARE_API_TOKEN --repo samsun076/debrief-site --body "<new-token>"`
+4. Delete old token in CF dashboard
 
 ---
 
@@ -122,7 +153,7 @@ The `sketches/` directory is gitignored and never deployed.
 - **No secrets in git** — `.doppler.yaml` is config, not credentials
 - **Runtime injection only** — `doppler run --` injects env vars for the command's lifetime
 - **Revocation scope** — lost laptop = revoke one Keychain-stored service token, rotate one CF token
-- **Interim until Doppler is stood up** — local untracked `.env` files, interactive/supervised runs only
+- **Doppler is stood up** — interim `.env` posture superseded as of 2026-07-22
 
 ---
 
@@ -153,9 +184,10 @@ doppler run -- npx wrangler pages deploy . --project-name debrief-site
 
 ### Rotate Cloudflare token
 
-1. Generate new token in CF dashboard (same permissions)
-2. `doppler secrets set CLOUDFLARE_API_TOKEN=<new-token>`
-3. Delete old token in CF dashboard
+1. Generate new token in CF dashboard (or via API) with `Pages Write` permission
+2. `doppler secrets set CLOUDFLARE_API_TOKEN=<new-token> --project program-cf --config prd`
+3. `gh secret set CLOUDFLARE_API_TOKEN --repo samsun076/debrief-site --body "<new-token>"`
+4. Delete old token in CF dashboard
 
 ---
 
@@ -163,4 +195,4 @@ doppler run -- npx wrangler pages deploy . --project-name debrief-site
 
 | Date | What |
 |------|------|
-| 2026-07-22 | Initial setup: CF account, Doppler, Pages project, DNS wiring |
+| 2026-07-22 | Initial setup: CF account, Doppler, Pages project, DNS wiring, GitHub Actions auto-deploy |
